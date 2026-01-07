@@ -1,10 +1,17 @@
 pipeline {
     agent any
 
+    parameters {
+        choice(
+            name: 'ACTION',
+            choices: ['plan', 'apply', 'destroy'],
+            description: 'Select the action to perform'
+        )
+    }
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/ankit-jagtap-devops/terraform-eks-nodegroup.git'
+                checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/ankit-80/Project-1.git']])
             }
         }
     
@@ -13,18 +20,28 @@ pipeline {
                 sh ("terraform init -reconfigure") 
             }
         }
-        
-        stage ("plan") {
-            steps {
-                sh ('terraform plan') 
-            }
-        }
 
-        stage (" Action") {
+        stage ("Action") {
             steps {
-                echo "Terraform action is --> ${action}"
-                sh ('terraform ${action} --auto-approve') 
-           }
+                script {
+                    switch (params.ACTION) {
+                        case 'plan':
+                            echo 'Executing Plan...'
+                            sh "terraform plan"
+                            break
+                        case 'apply':
+                            echo 'Executing Apply...'
+                            sh "terraform apply --auto-approve"
+                            break
+                        case 'destroy':
+                            echo 'Executing destroy...'
+                            sh "terraform destroy --auto-approve"
+                            break
+                        default:
+                            error 'Unknown action'
+                    }
+                }
+            }
         }
     }
 }
